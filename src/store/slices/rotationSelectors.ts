@@ -16,6 +16,7 @@ export const makeSelectRotationForCategory = (mealType: MealType) =>
         (dish) => dish.isActive && (dish.category === mealType || dish.category === 'all')
       );
 
+      // Boundary: Empty category (N = 0)
       if (eligibleDishes.length === 0) {
         return {
           mealType,
@@ -28,7 +29,7 @@ export const makeSelectRotationForCategory = (mealType: MealType) =>
         };
       }
 
-      // If only 1 dish exists, it is always available
+      // Boundary: Single-dish category (N = 1) -> Always available, never locked out
       if (eligibleDishes.length === 1) {
         return {
           mealType,
@@ -43,7 +44,7 @@ export const makeSelectRotationForCategory = (mealType: MealType) =>
 
       const eligibleIdsSet = new Set(eligibleDishes.map((d) => d.id));
 
-      // 2. All completed meals for this meal type, sorted chronologically
+      // 2. Completed meals for this meal type, sorted strictly by calendar date ASC
       const completedMeals: Meal[] = Object.values(mealsMap)
         .filter(
           (m) =>
@@ -53,34 +54,39 @@ export const makeSelectRotationForCategory = (mealType: MealType) =>
             eligibleIdsSet.has(m.completedDishId)
         )
         .sort((a, b) => {
+          // Stable calendar date order
           if (a.date !== b.date) return a.date.localeCompare(b.date);
           return a.updatedAt.localeCompare(b.updatedAt);
         });
 
-      // 3. Accumulate cycle
+      // 3. Option B Cycle Accumulator
       let currentCycleCompletedDishIds = new Set<string>();
+      let isCycleJustCompleted = false;
 
       for (const meal of completedMeals) {
         const dishId = meal.completedDishId!;
-        if (
-          currentCycleCompletedDishIds.has(dishId) ||
-          currentCycleCompletedDishIds.size >= eligibleDishes.length
-        ) {
-          // Restart cycle with this dish
+
+        if (isCycleJustCompleted) {
+          // The previous meal completed a cycle; this meal initiates a new cycle
           currentCycleCompletedDishIds = new Set<string>([dishId]);
+          isCycleJustCompleted = false;
         } else {
+          // In Option B: repeats do not reset the cycle; only new unique dishes grow the cycle
           currentCycleCompletedDishIds.add(dishId);
+        }
+
+        // Check if this meal completed the rotation cycle
+        if (currentCycleCompletedDishIds.size >= eligibleDishes.length) {
+          isCycleJustCompleted = true;
         }
       }
 
-      // 4. Check if cycle is complete (all dishes cooked once)
-      const isCycleJustCompleted = currentCycleCompletedDishIds.size >= eligibleDishes.length;
-
+      // 4. Derive output sets
       let availableDishes: Dish[];
       let recentlyCookedDishes: Dish[];
 
       if (isCycleJustCompleted) {
-        // Full reset: all dishes are available again for the next cook
+        // Cycle just completed: all dishes reset to available for the next meal
         availableDishes = eligibleDishes;
         recentlyCookedDishes = [];
       } else {
