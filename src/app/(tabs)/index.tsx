@@ -1,12 +1,5 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  SafeAreaView,
-  StatusBar,
-} from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, StatusBar } from 'react-native';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { getTodayDateString, formatFullDate } from '../../utils/date';
 import { MealType, SaveMealInput } from '../../types/meal';
@@ -21,6 +14,9 @@ import { addDish } from '../../store/slices/dishesSlice';
 import { MealSlotCard } from '../../components/MealSlotCard';
 import { DishPickerModal } from '../../components/DishPickerModal';
 import { DishFormModal } from '../../components/DishFormModal';
+import { TodayRotationMiniSummary } from '../../components/TodayRotationMiniSummary';
+
+const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner'];
 
 export default function TodayScreen() {
   const dispatch = useAppDispatch();
@@ -33,30 +29,17 @@ export default function TodayScreen() {
   const lunchRotation = useAppSelector(selectLunchRotation);
   const dinnerRotation = useAppSelector(selectDinnerRotation);
 
-  // Modal states
   const [activePickerMealType, setActivePickerMealType] = useState<MealType | null>(null);
   const [isNewDishModalVisible, setIsNewDishModalVisible] = useState(false);
   const [defaultNewDishCategory, setDefaultNewDishCategory] = useState<MealCategory>('dinner');
 
-  const dishesMap = React.useMemo(() => {
-    const map = new Map<string, Dish>();
-    for (const dish of allDishes) {
-      map.set(dish.id, dish);
-    }
-    return map;
-  }, [allDishes]);
+  const dishesMap = useMemo(() => new Map(allDishes.map((d) => [d.id, d])), [allDishes]);
 
-  const getRotationForType = (type: MealType) => {
-    if (type === 'breakfast') return breakfastRotation;
-    if (type === 'lunch') return lunchRotation;
-    return dinnerRotation;
-  };
+  const getRotationForType = (type: MealType) =>
+    type === 'breakfast' ? breakfastRotation : type === 'lunch' ? lunchRotation : dinnerRotation;
 
-  // Meal slot handlers
   const handleSelectDish = async (mealType: MealType, dish: Dish) => {
     const existing = mealsMap[getMealKey(todayStr, mealType)];
-    // If it was already completed or user is picking for today:
-    // For Today: if user picks a dish, default to completed or planned
     const input: SaveMealInput = {
       date: todayStr,
       mealType,
@@ -69,8 +52,7 @@ export default function TodayScreen() {
 
   const handleQuickComplete = async (mealType: MealType) => {
     const existing = mealsMap[getMealKey(todayStr, mealType)];
-    if (!existing || !existing.plannedDishId) return;
-
+    if (!existing?.plannedDishId) return;
     await dispatch(
       saveMeal({
         date: todayStr,
@@ -85,7 +67,6 @@ export default function TodayScreen() {
   const handleUncomplete = async (mealType: MealType) => {
     const existing = mealsMap[getMealKey(todayStr, mealType)];
     if (!existing) return;
-
     await dispatch(
       saveMeal({
         date: todayStr,
@@ -97,76 +78,32 @@ export default function TodayScreen() {
     );
   };
 
-  const handleSelectSkipped = async (mealType: MealType) => {
-    await dispatch(
-      saveMeal({
-        date: todayStr,
-        mealType,
-        plannedDishId: null,
-        completedDishId: null,
-        status: 'skipped',
-      })
-    );
-  };
-
-  const handleClearMeal = async (mealType: MealType) => {
-    await dispatch(deleteMeal({ date: todayStr, mealType }));
-  };
-
-  const handleCreateNewDish = async (name: string, category: MealCategory) => {
-    const created = await dispatch(addDish({ name, category })).unwrap();
-    if (activePickerMealType) {
-      await handleSelectDish(activePickerMealType, created);
-    }
-  };
-
-  const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner'];
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#0B1120" />
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerSubtitle}>{formatFullDate(todayStr)}</Text>
           <Text style={styles.headerTitle}>{"Today's Plate"}</Text>
         </View>
 
-        {/* Quick Rotation Status Bar */}
-        <View style={styles.rotationCardsRow}>
-          <View style={styles.miniRotationCard}>
-            <Text style={styles.miniRotationLabel}>🌅 Breakfast</Text>
-            <Text style={styles.miniRotationVal}>
-              {breakfastRotation.remainingCount} left
-            </Text>
-          </View>
-          <View style={styles.miniRotationCard}>
-            <Text style={styles.miniRotationLabel}>☀️ Lunch</Text>
-            <Text style={styles.miniRotationVal}>{lunchRotation.remainingCount} left</Text>
-          </View>
-          <View style={styles.miniRotationCard}>
-            <Text style={styles.miniRotationLabel}>🌙 Dinner</Text>
-            <Text style={styles.miniRotationVal}>{dinnerRotation.remainingCount} left</Text>
-          </View>
-        </View>
+        <TodayRotationMiniSummary
+          breakfastRotation={breakfastRotation}
+          lunchRotation={lunchRotation}
+          dinnerRotation={dinnerRotation}
+        />
 
-        {/* Meal Slots */}
         <View style={styles.slotsContainer}>
-          {mealTypes.map((type) => {
+          {MEAL_TYPES.map((type) => {
             const meal = mealsMap[getMealKey(todayStr, type)];
-            const plannedDish = meal?.plannedDishId ? dishesMap.get(meal.plannedDishId) : undefined;
-            const completedDish = meal?.completedDishId
-              ? dishesMap.get(meal.completedDishId)
-              : undefined;
-
             return (
               <MealSlotCard
                 key={type}
                 mealType={type}
                 dateStr={todayStr}
                 meal={meal}
-                plannedDish={plannedDish}
-                completedDish={completedDish}
+                plannedDish={meal?.plannedDishId ? dishesMap.get(meal.plannedDishId) : undefined}
+                completedDish={meal?.completedDishId ? dishesMap.get(meal.completedDishId) : undefined}
                 rotationStatus={getRotationForType(type)}
                 onPressPickDish={() => setActivePickerMealType(type)}
                 onPressQuickComplete={() => handleQuickComplete(type)}
@@ -177,7 +114,6 @@ export default function TodayScreen() {
         </View>
       </ScrollView>
 
-      {/* Dish Picker Modal */}
       {activePickerMealType && (
         <DishPickerModal
           visible={!!activePickerMealType}
@@ -190,8 +126,18 @@ export default function TodayScreen() {
             mealsMap[getMealKey(todayStr, activePickerMealType)]?.plannedDishId
           }
           onSelectDish={(dish) => handleSelectDish(activePickerMealType, dish)}
-          onSelectSkipped={() => handleSelectSkipped(activePickerMealType)}
-          onClearMeal={() => handleClearMeal(activePickerMealType)}
+          onSelectSkipped={() =>
+            dispatch(
+              saveMeal({
+                date: todayStr,
+                mealType: activePickerMealType,
+                plannedDishId: null,
+                completedDishId: null,
+                status: 'skipped',
+              })
+            )
+          }
+          onClearMeal={() => dispatch(deleteMeal({ date: todayStr, mealType: activePickerMealType }))}
           onCreateNewDishPrompt={() => {
             setDefaultNewDishCategory(activePickerMealType);
             setIsNewDishModalVisible(true);
@@ -200,11 +146,13 @@ export default function TodayScreen() {
         />
       )}
 
-      {/* New Dish Modal */}
       <DishFormModal
         visible={isNewDishModalVisible}
         defaultCategory={defaultNewDishCategory}
-        onSaveSingle={handleCreateNewDish}
+        onSaveSingle={async (name, category) => {
+          const created = await dispatch(addDish({ name, category })).unwrap();
+          if (activePickerMealType) await handleSelectDish(activePickerMealType, created);
+        }}
         onSaveBatch={() => {}}
         onClose={() => setIsNewDishModalVisible(false)}
       />
@@ -213,17 +161,9 @@ export default function TodayScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#0B1120',
-  },
-  container: {
-    padding: 20,
-    paddingBottom: 36,
-  },
-  header: {
-    marginBottom: 16,
-  },
+  safeArea: { flex: 1, backgroundColor: '#0B1120' },
+  container: { padding: 20, paddingBottom: 36 },
+  header: { marginBottom: 16 },
   headerSubtitle: {
     fontSize: 13,
     color: '#94A3B8',
@@ -231,38 +171,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.8,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#F8FAFC',
-    marginTop: 4,
-  },
-  rotationCardsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 20,
-  },
-  miniRotationCard: {
-    flex: 1,
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    padding: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  miniRotationLabel: {
-    fontSize: 11,
-    color: '#94A3B8',
-    fontWeight: '600',
-  },
-  miniRotationVal: {
-    fontSize: 13,
-    color: '#34D399',
-    fontWeight: '700',
-    marginTop: 3,
-  },
-  slotsContainer: {
-    marginTop: 4,
-  },
+  headerTitle: { fontSize: 28, fontWeight: '800', color: '#F8FAFC', marginTop: 4 },
+  slotsContainer: { marginTop: 4 },
 });
