@@ -109,6 +109,7 @@ export const dishesSlice = createSlice({
           ...state.items[idx],
           ...action.payload,
         };
+        state.items.sort((a, b) => a.name.localeCompare(b.name));
       }
     });
 
