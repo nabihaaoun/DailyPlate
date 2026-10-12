@@ -63,3 +63,35 @@ export function getDaysInMonth(year: number, month: number): string[] {
   }
   return days;
 }
+
+/**
+ * Returns the 7 days of the week containing anchorDateStr (Monday through Sunday).
+ */
+export function getWeekDays(anchorDateStr: string): string[] {
+  const d = parseDateString(anchorDateStr);
+  const day = d.getDay(); // 0 is Sunday, 1 is Monday, ...
+  // Calculate distance to previous Monday (0 for Mon, 6 for Sun)
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diffToMonday);
+
+  const week: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const current = new Date(monday);
+    current.setDate(monday.getDate() + i);
+    week.push(formatDateString(current));
+  }
+  return week;
+}
+
+/**
+ * Formats date as Month Year string (e.g., 'October 2026')
+ */
+export function formatMonthYear(dateStr: string): string {
+  const d = parseDateString(dateStr);
+  return d.toLocaleDateString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  });
+}
+

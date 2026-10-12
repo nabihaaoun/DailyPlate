@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, SafeAreaView, StatusBar } from 'react-native';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { getTodayDateString, addDays } from '../../utils/date';
+import { getTodayDateString } from '../../utils/date';
 import { MealType, SaveMealInput } from '../../types/meal';
 import { Dish, MealCategory } from '../../types/dish';
 import {
@@ -16,6 +16,7 @@ import { DishPickerModal } from '../../components/DishPickerModal';
 import { DishFormModal } from '../../components/DishFormModal';
 import { CalendarStrip } from '../../components/CalendarStrip';
 import { PlannerDateHeader } from '../../components/PlannerDateHeader';
+import { MoveMealModal } from '../../components/MoveMealModal';
 import { triggerCookHaptic, triggerTapHaptic } from '../../utils/haptics';
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner'];
@@ -36,19 +37,16 @@ export default function PlannerScreen() {
   const [activePickerMealType, setActivePickerMealType] = useState<MealType | null>(null);
   const [isNewDishModalVisible, setIsNewDishModalVisible] = useState(false);
   const [defaultNewDishCategory, setDefaultNewDishCategory] = useState<MealCategory>('dinner');
+  const [movingMeal, setMovingMeal] = useState<{
+    dish: Dish;
+    date: string;
+    mealType: MealType;
+  } | null>(null);
 
   const dishesMap = useMemo(() => new Map(allDishes.map((d) => [d.id, d])), [allDishes]);
 
   const getRotationForType = (type: MealType) =>
     type === 'breakfast' ? breakfastRotation : type === 'lunch' ? lunchRotation : dinnerRotation;
-
-  const dateStrip = useMemo(() => {
-    const list: string[] = [];
-    for (let i = -3; i <= 10; i++) {
-      list.push(addDays(todayStr, i));
-    }
-    return list;
-  }, [todayStr]);
 
   const isFutureDate = selectedDate > todayStr;
 
@@ -104,7 +102,6 @@ export default function PlannerScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#0B1120" />
       <CalendarStrip
-        dates={dateStrip}
         selectedDate={selectedDate}
         todayStr={todayStr}
         mealsMap={mealsMap}
@@ -124,18 +121,31 @@ export default function PlannerScreen() {
         <View style={styles.slotsContainer}>
           {MEAL_TYPES.map((type) => {
             const meal = mealsMap[getMealKey(selectedDate, type)];
+            const plannedDish = meal?.plannedDishId ? dishesMap.get(meal.plannedDishId) : undefined;
+            const completedDish = meal?.completedDishId
+              ? dishesMap.get(meal.completedDishId)
+              : undefined;
+
             return (
               <MealSlotCard
                 key={type}
                 mealType={type}
                 dateStr={selectedDate}
                 meal={meal}
-                plannedDish={meal?.plannedDishId ? dishesMap.get(meal.plannedDishId) : undefined}
-                completedDish={meal?.completedDishId ? dishesMap.get(meal.completedDishId) : undefined}
+                plannedDish={plannedDish}
+                completedDish={completedDish}
                 rotationStatus={getRotationForType(type)}
-                onPressPickDish={() => setActivePickerMealType(type)}
+                onPressPickDish={() => {
+                  triggerTapHaptic();
+                  setActivePickerMealType(type);
+                }}
                 onPressQuickComplete={() => handleQuickComplete(type)}
                 onPressUncomplete={() => handleUncomplete(type)}
+                onPressMove={
+                  plannedDish && meal?.status === 'planned'
+                    ? () => setMovingMeal({ dish: plannedDish, date: selectedDate, mealType: type })
+                    : undefined
+                }
               />
             );
           })}
@@ -154,7 +164,8 @@ export default function PlannerScreen() {
             mealsMap[getMealKey(selectedDate, activePickerMealType)]?.plannedDishId
           }
           onSelectDish={(dish) => handleSelectDish(activePickerMealType, dish)}
-          onSelectSkipped={() =>
+          onSelectSkipped={() => {
+            triggerTapHaptic();
             dispatch(
               saveMeal({
                 date: selectedDate,
@@ -163,16 +174,42 @@ export default function PlannerScreen() {
                 completedDishId: null,
                 status: 'skipped',
               })
-            )
-          }
-          onClearMeal={() =>
-            dispatch(deleteMeal({ date: selectedDate, mealType: activePickerMealType }))
-          }
+            );
+          }}
+          onClearMeal={() => {
+            triggerTapHaptic();
+            dispatch(deleteMeal({ date: selectedDate, mealType: activePickerMealType }));
+          }}
           onCreateNewDishPrompt={() => {
+            triggerTapHaptic();
             setDefaultNewDishCategory(activePickerMealType);
             setIsNewDishModalVisible(true);
           }}
           onClose={() => setActivePickerMealType(null)}
+        />
+      )}
+
+      {movingMeal && (
+        <MoveMealModal
+          visible={!!movingMeal}
+          dish={movingMeal.dish}
+          sourceDate={movingMeal.date}
+          sourceMealType={movingMeal.mealType}
+          onConfirmMove={async (targetDate, targetMealType) => {
+            await dispatch(deleteMeal({ date: movingMeal.date, mealType: movingMeal.mealType }));
+            await dispatch(
+              saveMeal({
+                date: targetDate,
+                mealType: targetMealType,
+                plannedDishId: movingMeal.dish.id,
+                completedDishId: null,
+                status: 'planned',
+              })
+            );
+            await triggerTapHaptic();
+            setMovingMeal(null);
+          }}
+          onClose={() => setMovingMeal(null)}
         />
       )}
 

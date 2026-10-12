@@ -8,6 +8,7 @@ interface Props {
   onPressQuickComplete: () => void;
   onPressUncomplete: () => void;
   onPressPickDish: () => void;
+  onPressMove?: () => void;
 }
 
 export const MealActionButtons: React.FC<Props> = ({
@@ -17,6 +18,7 @@ export const MealActionButtons: React.FC<Props> = ({
   onPressQuickComplete,
   onPressUncomplete,
   onPressPickDish,
+  onPressMove,
 }) => {
   return (
     <View style={styles.actionsRow}>
@@ -49,6 +51,16 @@ export const MealActionButtons: React.FC<Props> = ({
           {hasActiveDish ? 'Change' : '+ Choose Dish'}
         </Text>
       </TouchableOpacity>
+
+      {hasPlanned && onPressMove && (
+        <TouchableOpacity
+          style={styles.outlineBtn}
+          onPress={onPressMove}
+          accessibilityRole="button"
+          accessibilityLabel="Reschedule meal to another date">
+          <Text style={styles.outlineBtnText}>Move</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

@@ -17,6 +17,7 @@ interface Props {
   onPressPickDish: () => void;
   onPressQuickComplete: () => void;
   onPressUncomplete: () => void;
+  onPressMove?: () => void;
 }
 
 export const MealSlotCard: React.FC<Props> = ({
@@ -27,6 +28,7 @@ export const MealSlotCard: React.FC<Props> = ({
   onPressPickDish,
   onPressQuickComplete,
   onPressUncomplete,
+  onPressMove,
 }) => {
   const isCompleted = meal?.status === 'completed';
   const isSkipped = meal?.status === 'skipped';
@@ -57,6 +59,7 @@ export const MealSlotCard: React.FC<Props> = ({
         onPressQuickComplete={onPressQuickComplete}
         onPressUncomplete={onPressUncomplete}
         onPressPickDish={onPressPickDish}
+        onPressMove={onPressMove}
       />
     </View>
   );
