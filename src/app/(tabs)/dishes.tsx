@@ -29,6 +29,7 @@ import { DishFormModal } from '../../components/DishFormModal';
 import { CategoryFilterPills, DishFilterType } from '../../components/CategoryFilterPills';
 import { DishListItem } from '../../components/DishListItem';
 import { DishListEmpty } from '../../components/DishListEmpty';
+import { triggerTapHaptic } from '../../utils/haptics';
 
 export default function DishesScreen() {
   const dispatch = useAppDispatch();
@@ -71,6 +72,7 @@ export default function DishesScreen() {
           <TouchableOpacity
             style={styles.addBtn}
             onPress={() => {
+              triggerTapHaptic();
               setDishToEdit(null);
               setIsModalVisible(true);
             }}>
@@ -87,7 +89,13 @@ export default function DishesScreen() {
           autoCorrect={false}
         />
 
-        <CategoryFilterPills activeFilter={activeFilter} onSelectFilter={setActiveFilter} />
+        <CategoryFilterPills
+          activeFilter={activeFilter}
+          onSelectFilter={(f) => {
+            triggerTapHaptic();
+            setActiveFilter(f);
+          }}
+        />
 
         {activeFilter === 'breakfast' && (
           <RotationSummaryBar status={breakfastRotation} title="BREAKFAST ROTATION" />

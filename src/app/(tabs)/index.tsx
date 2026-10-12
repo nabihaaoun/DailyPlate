@@ -15,6 +15,12 @@ import { MealSlotCard } from '../../components/MealSlotCard';
 import { DishPickerModal } from '../../components/DishPickerModal';
 import { DishFormModal } from '../../components/DishFormModal';
 import { TodayRotationMiniSummary } from '../../components/TodayRotationMiniSummary';
+import { CycleCelebrationBanner } from '../../components/CycleCelebrationBanner';
+import {
+  triggerCookHaptic,
+  triggerCycleCompleteHaptic,
+  triggerTapHaptic,
+} from '../../utils/haptics';
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner'];
 
@@ -32,11 +38,19 @@ export default function TodayScreen() {
   const [activePickerMealType, setActivePickerMealType] = useState<MealType | null>(null);
   const [isNewDishModalVisible, setIsNewDishModalVisible] = useState(false);
   const [defaultNewDishCategory, setDefaultNewDishCategory] = useState<MealCategory>('dinner');
+  const [dismissedCelebrations, setDismissedCelebrations] = useState<Record<string, boolean>>({});
 
   const dishesMap = useMemo(() => new Map(allDishes.map((d) => [d.id, d])), [allDishes]);
 
   const getRotationForType = (type: MealType) =>
     type === 'breakfast' ? breakfastRotation : type === 'lunch' ? lunchRotation : dinnerRotation;
+
+  const completedCycleMealType = useMemo(() => {
+    if (breakfastRotation.isCycleJustCompleted && !dismissedCelebrations.breakfast) return 'breakfast';
+    if (lunchRotation.isCycleJustCompleted && !dismissedCelebrations.lunch) return 'lunch';
+    if (dinnerRotation.isCycleJustCompleted && !dismissedCelebrations.dinner) return 'dinner';
+    return null;
+  }, [breakfastRotation, lunchRotation, dinnerRotation, dismissedCelebrations]);
 
   const handleSelectDish = async (mealType: MealType, dish: Dish) => {
     const existing = mealsMap[getMealKey(todayStr, mealType)];
@@ -48,6 +62,7 @@ export default function TodayScreen() {
       status: 'completed',
     };
     await dispatch(saveMeal(input));
+    await triggerCookHaptic();
   };
 
   const handleQuickComplete = async (mealType: MealType) => {
@@ -62,6 +77,12 @@ export default function TodayScreen() {
         status: 'completed',
       })
     );
+    const rotation = getRotationForType(mealType);
+    if (rotation.remainingCount <= 1) {
+      await triggerCycleCompleteHaptic();
+    } else {
+      await triggerCookHaptic();
+    }
   };
 
   const handleUncomplete = async (mealType: MealType) => {
@@ -76,6 +97,7 @@ export default function TodayScreen() {
         status: 'planned',
       })
     );
+    await triggerTapHaptic();
   };
 
   return (
@@ -93,6 +115,15 @@ export default function TodayScreen() {
           dinnerRotation={dinnerRotation}
         />
 
+        {completedCycleMealType && (
+          <CycleCelebrationBanner
+            mealType={completedCycleMealType}
+            onDismiss={() =>
+              setDismissedCelebrations((prev) => ({ ...prev, [completedCycleMealType]: true }))
+            }
+          />
+        )}
+
         <View style={styles.slotsContainer}>
           {MEAL_TYPES.map((type) => {
             const meal = mealsMap[getMealKey(todayStr, type)];
@@ -105,7 +136,10 @@ export default function TodayScreen() {
                 plannedDish={meal?.plannedDishId ? dishesMap.get(meal.plannedDishId) : undefined}
                 completedDish={meal?.completedDishId ? dishesMap.get(meal.completedDishId) : undefined}
                 rotationStatus={getRotationForType(type)}
-                onPressPickDish={() => setActivePickerMealType(type)}
+                onPressPickDish={() => {
+                  triggerTapHaptic();
+                  setActivePickerMealType(type);
+                }}
                 onPressQuickComplete={() => handleQuickComplete(type)}
                 onPressUncomplete={() => handleUncomplete(type)}
               />
@@ -126,7 +160,8 @@ export default function TodayScreen() {
             mealsMap[getMealKey(todayStr, activePickerMealType)]?.plannedDishId
           }
           onSelectDish={(dish) => handleSelectDish(activePickerMealType, dish)}
-          onSelectSkipped={() =>
+          onSelectSkipped={() => {
+            triggerTapHaptic();
             dispatch(
               saveMeal({
                 date: todayStr,
@@ -135,10 +170,14 @@ export default function TodayScreen() {
                 completedDishId: null,
                 status: 'skipped',
               })
-            )
-          }
-          onClearMeal={() => dispatch(deleteMeal({ date: todayStr, mealType: activePickerMealType }))}
+            );
+          }}
+          onClearMeal={() => {
+            triggerTapHaptic();
+            dispatch(deleteMeal({ date: todayStr, mealType: activePickerMealType }));
+          }}
           onCreateNewDishPrompt={() => {
+            triggerTapHaptic();
             setDefaultNewDishCategory(activePickerMealType);
             setIsNewDishModalVisible(true);
           }}

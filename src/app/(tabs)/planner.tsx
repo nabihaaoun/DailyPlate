@@ -16,6 +16,7 @@ import { DishPickerModal } from '../../components/DishPickerModal';
 import { DishFormModal } from '../../components/DishFormModal';
 import { CalendarStrip } from '../../components/CalendarStrip';
 import { PlannerDateHeader } from '../../components/PlannerDateHeader';
+import { triggerCookHaptic, triggerTapHaptic } from '../../utils/haptics';
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner'];
 
@@ -62,6 +63,11 @@ export default function PlannerScreen() {
       status: defaultStatus,
     };
     await dispatch(saveMeal(input));
+    if (defaultStatus === 'completed') {
+      await triggerCookHaptic();
+    } else {
+      await triggerTapHaptic();
+    }
   };
 
   const handleQuickComplete = async (mealType: MealType) => {
@@ -76,6 +82,7 @@ export default function PlannerScreen() {
         status: 'completed',
       })
     );
+    await triggerCookHaptic();
   };
 
   const handleUncomplete = async (mealType: MealType) => {
@@ -90,6 +97,7 @@ export default function PlannerScreen() {
         status: 'planned',
       })
     );
+    await triggerTapHaptic();
   };
 
   return (
@@ -100,8 +108,14 @@ export default function PlannerScreen() {
         selectedDate={selectedDate}
         todayStr={todayStr}
         mealsMap={mealsMap}
-        onSelectDate={setSelectedDate}
-        onJumpToday={() => setSelectedDate(todayStr)}
+        onSelectDate={(d) => {
+          triggerTapHaptic();
+          setSelectedDate(d);
+        }}
+        onJumpToday={() => {
+          triggerTapHaptic();
+          setSelectedDate(todayStr);
+        }}
       />
 
       <ScrollView contentContainerStyle={styles.container}>
