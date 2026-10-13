@@ -89,6 +89,50 @@ export async function upsertMeal(input: SaveMealInput): Promise<Meal> {
   };
 }
 
+export async function upsertMealsBatch(inputs: SaveMealInput[]): Promise<Meal[]> {
+  const db = await getDb();
+  const now = new Date().toISOString();
+  const results: Meal[] = [];
+
+  await db.withTransactionAsync(async () => {
+    for (const input of inputs) {
+      const id = `meal_${input.date}_${input.mealType}`;
+      await db.runAsync(
+        `INSERT INTO meals (id, date, meal_type, planned_dish_id, completed_dish_id, status, notes, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(date, meal_type) DO UPDATE SET
+           planned_dish_id = COALESCE(excluded.planned_dish_id, meals.planned_dish_id),
+           completed_dish_id = COALESCE(excluded.completed_dish_id, meals.completed_dish_id),
+           status = excluded.status,
+           notes = excluded.notes,
+           updated_at = excluded.updated_at`,
+        [
+          id,
+          input.date,
+          input.mealType,
+          input.plannedDishId !== undefined ? input.plannedDishId : null,
+          input.completedDishId !== undefined ? input.completedDishId : null,
+          input.status,
+          input.notes || null,
+          now,
+        ]
+      );
+      results.push({
+        id,
+        date: input.date,
+        mealType: input.mealType,
+        plannedDishId: input.plannedDishId !== undefined ? input.plannedDishId : null,
+        completedDishId: input.completedDishId !== undefined ? input.completedDishId : null,
+        status: input.status,
+        notes: input.notes || null,
+        updatedAt: now,
+      });
+    }
+  });
+
+  return results;
+}
+
 export async function removeMeal(date: string, mealType: MealType): Promise<void> {
   const db = await getDb();
   await db.runAsync('DELETE FROM meals WHERE date = ? AND meal_type = ?', [date, mealType]);

@@ -1,6 +1,11 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Meal, MealType, SaveMealInput } from '../../types/meal';
-import { fetchAllMeals, upsertMeal, removeMeal } from '../../db/mealsRepository';
+import {
+  fetchAllMeals,
+  upsertMeal,
+  upsertMealsBatch,
+  removeMeal,
+} from '../../db/mealsRepository';
 
 export interface MealsState {
   meals: Record<string, Meal>; // key: `${date}_${mealType}`
@@ -25,6 +30,13 @@ export const loadAllMeals = createAsyncThunk('meals/loadAll', async () => {
 export const saveMeal = createAsyncThunk('meals/save', async (input: SaveMealInput) => {
   return await upsertMeal(input);
 });
+
+export const saveMealBatch = createAsyncThunk(
+  'meals/saveBatch',
+  async (inputs: SaveMealInput[]) => {
+    return await upsertMealsBatch(inputs);
+  }
+);
 
 export const deleteMeal = createAsyncThunk(
   'meals/delete',
@@ -61,6 +73,14 @@ export const mealsSlice = createSlice({
     builder.addCase(saveMeal.fulfilled, (state, action: PayloadAction<Meal>) => {
       const key = getMealKey(action.payload.date, action.payload.mealType);
       state.meals[key] = action.payload;
+    });
+
+    // saveMealBatch
+    builder.addCase(saveMealBatch.fulfilled, (state, action: PayloadAction<Meal[]>) => {
+      for (const meal of action.payload) {
+        const key = getMealKey(meal.date, meal.mealType);
+        state.meals[key] = meal;
+      }
     });
 
     // deleteMeal

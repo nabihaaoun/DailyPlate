@@ -9,6 +9,7 @@ interface Props {
   onPressUncomplete: () => void;
   onPressPickDish: () => void;
   onPressMove?: () => void;
+  onPressSuggest?: () => void;
 }
 
 export const MealActionButtons: React.FC<Props> = ({
@@ -19,6 +20,7 @@ export const MealActionButtons: React.FC<Props> = ({
   onPressUncomplete,
   onPressPickDish,
   onPressMove,
+  onPressSuggest,
 }) => {
   return (
     <View style={styles.actionsRow}>
@@ -51,6 +53,16 @@ export const MealActionButtons: React.FC<Props> = ({
           {hasActiveDish ? 'Change' : '+ Choose Dish'}
         </Text>
       </TouchableOpacity>
+
+      {!hasActiveDish && onPressSuggest && (
+        <TouchableOpacity
+          style={styles.suggestBtn}
+          onPress={onPressSuggest}
+          accessibilityRole="button"
+          accessibilityLabel="Auto-suggest next dish from rotation">
+          <Text style={styles.suggestBtnText}>⚡ Suggest</Text>
+        </TouchableOpacity>
+      )}
 
       {hasPlanned && onPressMove && (
         <TouchableOpacity
@@ -104,6 +116,19 @@ const styles = StyleSheet.create({
   outlineBtnText: {
     color: '#E5E7EB',
     fontWeight: '600',
+    fontSize: 13,
+  },
+  suggestBtn: {
+    backgroundColor: '#312E81',
+    borderWidth: 1,
+    borderColor: '#6366F1',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  suggestBtnText: {
+    color: '#E0E7FF',
+    fontWeight: '700',
     fontSize: 13,
   },
 });

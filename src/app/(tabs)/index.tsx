@@ -16,6 +16,7 @@ import { DishPickerModal } from '../../components/DishPickerModal';
 import { DishFormModal } from '../../components/DishFormModal';
 import { TodayRotationMiniSummary } from '../../components/TodayRotationMiniSummary';
 import { CycleCelebrationBanner } from '../../components/CycleCelebrationBanner';
+import { getSuggestedDishForSlot } from '../../domain/autoSuggestEngine';
 import {
   triggerCookHaptic,
   triggerCycleCompleteHaptic,
@@ -100,6 +101,22 @@ export default function TodayScreen() {
     await triggerTapHaptic();
   };
 
+  const handleSuggestSingle = async (mealType: MealType) => {
+    const rotation = getRotationForType(mealType);
+    const suggested = getSuggestedDishForSlot(rotation);
+    if (!suggested) return;
+    await dispatch(
+      saveMeal({
+        date: todayStr,
+        mealType,
+        plannedDishId: suggested.id,
+        completedDishId: null,
+        status: 'planned',
+      })
+    );
+    await triggerTapHaptic();
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#0B1120" />
@@ -142,6 +159,7 @@ export default function TodayScreen() {
                 }}
                 onPressQuickComplete={() => handleQuickComplete(type)}
                 onPressUncomplete={() => handleUncomplete(type)}
+                onPressSuggest={() => handleSuggestSingle(type)}
               />
             );
           })}

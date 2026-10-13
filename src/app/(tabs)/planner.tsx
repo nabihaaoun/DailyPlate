@@ -9,7 +9,7 @@ import {
   selectLunchRotation,
   selectDinnerRotation,
 } from '../../store/slices/rotationSelectors';
-import { saveMeal, deleteMeal, getMealKey } from '../../store/slices/mealsSlice';
+import { saveMeal, saveMealBatch, deleteMeal, getMealKey } from '../../store/slices/mealsSlice';
 import { addDish } from '../../store/slices/dishesSlice';
 import { MealSlotCard } from '../../components/MealSlotCard';
 import { DishPickerModal } from '../../components/DishPickerModal';
@@ -17,6 +17,15 @@ import { DishFormModal } from '../../components/DishFormModal';
 import { CalendarStrip } from '../../components/CalendarStrip';
 import { PlannerDateHeader } from '../../components/PlannerDateHeader';
 import { MoveMealModal } from '../../components/MoveMealModal';
+import { AutoPlanActionsBar } from '../../components/AutoPlanActionsBar';
+import { AutoPlanModal } from '../../components/AutoPlanModal';
+import {
+  generateDaySuggestions,
+  generateWeekSuggestions,
+  getSuggestedDishForSlot,
+  suggestionsToSaveInputs,
+  PlanSuggestion,
+} from '../../domain/autoSuggestEngine';
 import { triggerCookHaptic, triggerTapHaptic } from '../../utils/haptics';
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner'];
@@ -42,11 +51,20 @@ export default function PlannerScreen() {
     date: string;
     mealType: MealType;
   } | null>(null);
+  const [weekSuggestions, setWeekSuggestions] = useState<PlanSuggestion[]>([]);
+  const [isWeekModalVisible, setIsWeekModalVisible] = useState(false);
 
   const dishesMap = useMemo(() => new Map(allDishes.map((d) => [d.id, d])), [allDishes]);
 
   const getRotationForType = (type: MealType) =>
     type === 'breakfast' ? breakfastRotation : type === 'lunch' ? lunchRotation : dinnerRotation;
+
+  const emptySlotsCount = useMemo(() => {
+    return MEAL_TYPES.filter((type) => {
+      const meal = mealsMap[getMealKey(selectedDate, type)];
+      return !meal || (!meal.plannedDishId && !meal.completedDishId && meal.status !== 'skipped');
+    }).length;
+  }, [mealsMap, selectedDate]);
 
   const isFutureDate = selectedDate > todayStr;
 
@@ -98,6 +116,53 @@ export default function PlannerScreen() {
     await triggerTapHaptic();
   };
 
+  const handleSuggestSingle = async (mealType: MealType) => {
+    const rotation = getRotationForType(mealType);
+    const suggested = getSuggestedDishForSlot(rotation);
+    if (!suggested) return;
+    await dispatch(
+      saveMeal({
+        date: selectedDate,
+        mealType,
+        plannedDishId: suggested.id,
+        completedDishId: null,
+        status: 'planned',
+      })
+    );
+    await triggerTapHaptic();
+  };
+
+  const handleAutoFillDay = async () => {
+    const suggestions = generateDaySuggestions(selectedDate, mealsMap, {
+      breakfast: breakfastRotation,
+      lunch: lunchRotation,
+      dinner: dinnerRotation,
+    });
+    if (suggestions.length === 0) return;
+    const inputs = suggestionsToSaveInputs(suggestions);
+    await dispatch(saveMealBatch(inputs));
+    await triggerCookHaptic();
+  };
+
+  const handleOpenWeekPlanner = () => {
+    triggerTapHaptic();
+    const suggestions = generateWeekSuggestions(selectedDate, mealsMap, {
+      breakfast: breakfastRotation,
+      lunch: lunchRotation,
+      dinner: dinnerRotation,
+    });
+    setWeekSuggestions(suggestions);
+    setIsWeekModalVisible(true);
+  };
+
+  const handleApplyWeekPlan = async () => {
+    if (weekSuggestions.length === 0) return;
+    const inputs = suggestionsToSaveInputs(weekSuggestions);
+    await dispatch(saveMealBatch(inputs));
+    await triggerCookHaptic();
+    setIsWeekModalVisible(false);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#0B1120" />
@@ -117,6 +182,12 @@ export default function PlannerScreen() {
 
       <ScrollView contentContainerStyle={styles.container}>
         <PlannerDateHeader selectedDate={selectedDate} />
+
+        <AutoPlanActionsBar
+          emptySlotsCount={emptySlotsCount}
+          onPressAutoFillDay={handleAutoFillDay}
+          onPressOpenWeekPlanner={handleOpenWeekPlanner}
+        />
 
         <View style={styles.slotsContainer}>
           {MEAL_TYPES.map((type) => {
@@ -141,6 +212,7 @@ export default function PlannerScreen() {
                 }}
                 onPressQuickComplete={() => handleQuickComplete(type)}
                 onPressUncomplete={() => handleUncomplete(type)}
+                onPressSuggest={() => handleSuggestSingle(type)}
                 onPressMove={
                   plannedDish && meal?.status === 'planned'
                     ? () => setMovingMeal({ dish: plannedDish, date: selectedDate, mealType: type })
@@ -222,6 +294,13 @@ export default function PlannerScreen() {
         }}
         onSaveBatch={() => {}}
         onClose={() => setIsNewDishModalVisible(false)}
+      />
+
+      <AutoPlanModal
+        visible={isWeekModalVisible}
+        suggestions={weekSuggestions}
+        onConfirm={handleApplyWeekPlan}
+        onClose={() => setIsWeekModalVisible(false)}
       />
     </SafeAreaView>
   );

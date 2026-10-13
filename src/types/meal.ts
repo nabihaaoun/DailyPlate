@@ -21,3 +21,7 @@ export type SaveMealInput = {
   status: MealStatus;
   notes?: string | null;
 };
+
+export function getMealKey(date: string, mealType: MealType): string {
+  return `${date}_${mealType}`;
+}

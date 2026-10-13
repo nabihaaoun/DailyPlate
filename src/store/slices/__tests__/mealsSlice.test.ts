@@ -3,6 +3,7 @@ import mealsReducer, {
   MealsState,
   getMealKey,
   saveMeal,
+  saveMealBatch,
   deleteMeal,
 } from '../mealsSlice';
 import { Meal } from '../../../types/meal';
@@ -10,6 +11,7 @@ import { Meal } from '../../../types/meal';
 vi.mock('../../../db/mealsRepository', () => ({
   fetchAllMeals: vi.fn(),
   upsertMeal: vi.fn(),
+  upsertMealsBatch: vi.fn(),
   removeMeal: vi.fn(),
 }));
 
@@ -222,5 +224,38 @@ describe('Meal Slot State Transitions & Reducer Invariants', () => {
 
     const key = getMealKey('2026-10-10', 'lunch');
     expect(nextState.meals[key]).toBeUndefined();
+  });
+
+  it('T-8: Batch Save Meals (saveMealBatch)', () => {
+    const batchMeals: Meal[] = [
+      {
+        id: 'meal_2026-10-10_breakfast',
+        date: '2026-10-10',
+        mealType: 'breakfast',
+        plannedDishId: 'dish_b1',
+        completedDishId: null,
+        status: 'planned',
+        notes: null,
+        updatedAt: '2026-10-01T12:00:00Z',
+      },
+      {
+        id: 'meal_2026-10-10_dinner',
+        date: '2026-10-10',
+        mealType: 'dinner',
+        plannedDishId: 'dish_d1',
+        completedDishId: null,
+        status: 'planned',
+        notes: null,
+        updatedAt: '2026-10-01T12:00:00Z',
+      },
+    ];
+
+    const action = { type: saveMealBatch.fulfilled.type, payload: batchMeals };
+    const nextState = mealsReducer(initialMealsState, action);
+
+    expect(nextState.meals[getMealKey('2026-10-10', 'breakfast')]).toBeDefined();
+    expect(nextState.meals[getMealKey('2026-10-10', 'breakfast')].plannedDishId).toBe('dish_b1');
+    expect(nextState.meals[getMealKey('2026-10-10', 'dinner')]).toBeDefined();
+    expect(nextState.meals[getMealKey('2026-10-10', 'dinner')].plannedDishId).toBe('dish_d1');
   });
 });
