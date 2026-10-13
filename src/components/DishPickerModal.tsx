@@ -6,12 +6,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  TextInput,
   SafeAreaView,
 } from 'react-native';
 import { Dish } from '../types/dish';
 import { MealType } from '../types/meal';
 import { CategoryRotationStatus } from '../types/rotation';
+import { SearchBar } from './SearchBar';
 
 interface Props {
   visible: boolean;
@@ -76,17 +76,12 @@ export const DishPickerModal: React.FC<Props> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Search Bar */}
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search dishes..."
-              placeholderTextColor="#6B7280"
-              value={search}
-              onChangeText={setSearch}
-              autoCorrect={false}
-            />
-          </View>
+          {/* Real-time Search Bar */}
+          <SearchBar
+            value={search}
+            onChangeText={setSearch}
+            placeholder={`Search ${mealType} dishes...`}
+          />
 
           {/* Quick Actions Row */}
           <View style={styles.quickActions}>

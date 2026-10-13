@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  TextInput,
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
@@ -30,6 +29,8 @@ import { CategoryFilterPills, DishFilterType } from '../../components/CategoryFi
 import { DishListItem } from '../../components/DishListItem';
 import { DishListEmpty } from '../../components/DishListEmpty';
 import { SettingsModal } from '../../components/SettingsModal';
+import { SearchBar } from '../../components/SearchBar';
+import { filterDishes } from '../../domain/dishSearch';
 import { triggerTapHaptic } from '../../utils/haptics';
 
 export default function DishesScreen() {
@@ -47,12 +48,7 @@ export default function DishesScreen() {
   const [dishToEdit, setDishToEdit] = useState<Dish | null>(null);
 
   const filteredDishes = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    return allDishes.filter((dish) => {
-      const matchCat =
-        activeFilter === 'all_filter' || dish.category === activeFilter || dish.category === 'all';
-      return matchCat && (q.length === 0 || dish.name.toLowerCase().includes(q));
-    });
+    return filterDishes(allDishes, search, activeFilter);
   }, [allDishes, activeFilter, search]);
 
   const handleDeleteDish = (dish: Dish) => {
@@ -93,13 +89,10 @@ export default function DishesScreen() {
           </View>
         </View>
 
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by dish name..."
-          placeholderTextColor="#64748B"
+        <SearchBar
           value={search}
           onChangeText={setSearch}
-          autoCorrect={false}
+          placeholder="Search by dish name..."
         />
 
         <CategoryFilterPills
