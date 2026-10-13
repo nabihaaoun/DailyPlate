@@ -34,7 +34,49 @@ export const SettingsModal: React.FC<Props> = ({ visible, onClose }) => {
   const cookedCount = Object.values(mealsMap).filter((m) => m.status === 'completed').length;
   const plannedCount = Object.values(mealsMap).filter((m) => m.status === 'planned').length;
 
-  const handleExport = async () => {
+  /**
+   * Danger Zone: Clear Local App Data with double confirmation
+   */
+  const handleClearLocalData = () => {
+    // Confirmation 1
+    Alert.alert(
+      'Clear Local App Data',
+      'This will permanently delete all your custom dishes and meal history from this device. Are you sure you want to proceed?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            // Confirmation 2 (Double confirmation safeguard)
+            Alert.alert(
+              'Final Confirmation',
+              'This action cannot be undone. All rotation progress and saved dishes will be permanently wiped.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Wipe Everything',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await resetDatabaseToCleanState();
+                    await dispatch(loadDishes());
+                    await dispatch(loadAllMeals());
+                    await triggerTapHaptic();
+                    setStatusMessage('Local data cleared successfully.');
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  };
+
+  /**
+   * Developer tools handlers (Available in DEV mode only)
+   */
+  const handleExportDev = async () => {
     try {
       const backup = await exportDatabaseBackup();
       const stringified = JSON.stringify(backup, null, 2);
@@ -42,9 +84,7 @@ export const SettingsModal: React.FC<Props> = ({ visible, onClose }) => {
         await navigator.clipboard.writeText(stringified);
       }
       await triggerCookHaptic();
-      setStatusMessage(
-        `Backup exported! (${backup.dishes.length} dishes, ${backup.meals.length} meals copied to clipboard)`
-      );
+      setStatusMessage(`Backup copied to clipboard (${backup.dishes.length} dishes, ${backup.meals.length} meals)`);
       Alert.alert(
         'Backup Exported',
         `Database backup with ${backup.dishes.length} dishes and ${backup.meals.length} meals has been copied to your clipboard.`
@@ -54,7 +94,7 @@ export const SettingsModal: React.FC<Props> = ({ visible, onClose }) => {
     }
   };
 
-  const handleImport = async () => {
+  const handleImportDev = async () => {
     try {
       let rawJson = '';
       if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
@@ -85,28 +125,7 @@ export const SettingsModal: React.FC<Props> = ({ visible, onClose }) => {
     }
   };
 
-  const handleReset = () => {
-    Alert.alert(
-      'Reset All Data',
-      'This will delete all your custom dishes and meal history. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset Everything',
-          style: 'destructive',
-          onPress: async () => {
-            await resetDatabaseToCleanState();
-            await dispatch(loadDishes());
-            await dispatch(loadAllMeals());
-            await triggerTapHaptic();
-            setStatusMessage('Database has been completely reset.');
-          },
-        },
-      ]
-    );
-  };
-
-  const handleReloadStarterDishes = async () => {
+  const handleReloadStarterDishesDev = async () => {
     await dispatch(seedSampleDishes());
     await triggerCookHaptic();
     setStatusMessage('Starter dishes loaded into menu!');
@@ -118,22 +137,27 @@ export const SettingsModal: React.FC<Props> = ({ visible, onClose }) => {
         <SafeAreaView style={styles.sheet}>
           <View style={styles.header}>
             <Text style={styles.title}>Data & Settings</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} accessibilityLabel="Close settings modal">
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.closeBtn}
+              accessibilityLabel="Close settings modal">
               <Text style={styles.closeText}>✕</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.scroll}>
-            {/* Summary Stats */}
+            {/* 1. Summary Statistics Card */}
             <View style={styles.statsCard}>
               <View style={styles.statItem}>
                 <Text style={styles.statVal}>{allDishes.length}</Text>
                 <Text style={styles.statLabel}>Dishes</Text>
               </View>
+              <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Text style={styles.statVal}>{cookedCount}</Text>
                 <Text style={styles.statLabel}>Cooked</Text>
               </View>
+              <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Text style={styles.statVal}>{plannedCount}</Text>
                 <Text style={styles.statLabel}>Planned</Text>
@@ -142,40 +166,70 @@ export const SettingsModal: React.FC<Props> = ({ visible, onClose }) => {
 
             {statusMessage && <Text style={styles.statusBanner}>{statusMessage}</Text>}
 
-            {/* Primary Action Buttons */}
-            <View style={styles.actionsList}>
-              <TouchableOpacity
-                style={styles.btnSecondary}
-                onPress={handleExport}
-                accessibilityRole="button"
-                accessibilityLabel="Export JSON Backup">
-                <Text style={styles.btnText}>📦 Export JSON Backup</Text>
-              </TouchableOpacity>
+            {/* 2. App & Storage Info */}
+            <View style={styles.infoCard}>
+              <Text style={styles.infoTitle}>About DailyPlate</Text>
+              <Text style={styles.infoText}>
+                Version 1.0 • 100% Offline SQLite Storage
+              </Text>
+              <Text style={styles.infoSubtext}>
+                All dishes, rotation records, and meal plans are stored locally on this device.
+                No data is sent to external servers.
+              </Text>
+            </View>
 
-              <TouchableOpacity
-                style={styles.btnSecondary}
-                onPress={handleImport}
-                accessibilityRole="button"
-                accessibilityLabel="Import JSON Backup">
-                <Text style={styles.btnText}>📥 Import JSON Backup</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.btnSecondary}
-                onPress={handleReloadStarterDishes}
-                accessibilityRole="button"
-                accessibilityLabel="Reload Starter Dishes">
-                <Text style={styles.btnText}>🍲 Reload Starter Dishes</Text>
-              </TouchableOpacity>
-
+            {/* 3. Dedicated Danger Zone */}
+            <View style={styles.dangerZoneCard}>
+              <Text style={styles.dangerZoneTitle}>DANGER ZONE</Text>
+              <Text style={styles.dangerZoneDescription}>
+                Permanently delete all custom dishes, meal history, and planned rotations from
+                this device.
+              </Text>
               <TouchableOpacity
                 style={styles.btnDanger}
-                onPress={handleReset}
+                onPress={handleClearLocalData}
                 accessibilityRole="button"
-                accessibilityLabel="Reset Database">
-                <Text style={styles.btnDangerText}>⚠️ Reset Database</Text>
+                accessibilityLabel="Clear Local App Data">
+                <Text style={styles.btnDangerText}>🗑️ Clear Local App Data</Text>
               </TouchableOpacity>
             </View>
+
+            {/* 4. Developer & Debug Tools (Rendered ONLY in development) */}
+            {__DEV__ && (
+              <View style={styles.devSection}>
+                <View style={styles.devHeaderRow}>
+                  <Text style={styles.devTitle}>DEVELOPER TOOLS</Text>
+                  <View style={styles.devBadge}>
+                    <Text style={styles.devBadgeText}>DEV ONLY</Text>
+                  </View>
+                </View>
+                <View style={styles.devActionsList}>
+                  <TouchableOpacity
+                    style={styles.btnDev}
+                    onPress={handleExportDev}
+                    accessibilityRole="button"
+                    accessibilityLabel="Export JSON Backup">
+                    <Text style={styles.btnDevText}>📦 Export JSON Backup</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.btnDev}
+                    onPress={handleImportDev}
+                    accessibilityRole="button"
+                    accessibilityLabel="Import JSON Backup">
+                    <Text style={styles.btnDevText}>📥 Import JSON Backup</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.btnDev}
+                    onPress={handleReloadStarterDishesDev}
+                    accessibilityRole="button"
+                    accessibilityLabel="Reload Starter Dishes">
+                    <Text style={styles.btnDevText}>🍲 Reload Starter Dishes</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </ScrollView>
         </SafeAreaView>
       </View>
@@ -223,18 +277,26 @@ const styles = StyleSheet.create({
   statsCard: {
     flexDirection: 'row',
     backgroundColor: '#0F172A',
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     justifyContent: 'space-around',
+    alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#334155',
   },
   statItem: {
     alignItems: 'center',
+    flex: 1,
+  },
+  statDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: '#334155',
   },
   statVal: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: '#10B981',
   },
@@ -243,6 +305,8 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     marginTop: 2,
     fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   statusBanner: {
     color: '#34D399',
@@ -254,35 +318,108 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     textAlign: 'center',
   },
-  actionsList: {
-    gap: 10,
-    marginBottom: 16,
-  },
-  btnSecondary: {
+  infoCard: {
     backgroundColor: '#0F172A',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+  },
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#F1F5F9',
+    marginBottom: 4,
+  },
+  infoText: {
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  infoSubtext: {
+    fontSize: 12,
+    color: '#94A3B8',
+    lineHeight: 16,
+  },
+  dangerZoneCard: {
+    backgroundColor: '#261214',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#7F1D1D',
+  },
+  dangerZoneTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#F87171',
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  dangerZoneDescription: {
+    fontSize: 12,
+    color: '#FCA5A5',
+    lineHeight: 16,
+    marginBottom: 14,
+    opacity: 0.9,
+  },
+  btnDanger: {
+    backgroundColor: '#7F1D1D',
     paddingVertical: 12,
     paddingHorizontal: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  btnDangerText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  devSection: {
+    marginTop: 8,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+  },
+  devHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  devTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+  },
+  devBadge: {
+    backgroundColor: '#3730A3',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  devBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#C7D2FE',
+  },
+  devActionsList: {
+    gap: 8,
+  },
+  btnDev: {
+    backgroundColor: '#0F172A',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#334155',
   },
-  btnText: {
-    color: '#F1F5F9',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  btnDanger: {
-    backgroundColor: '#451A1A',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#7F1D1D',
-    marginTop: 6,
-  },
-  btnDangerText: {
-    color: '#FCA5A5',
-    fontSize: 14,
-    fontWeight: '700',
+  btnDevText: {
+    color: '#CBD5E1',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
