@@ -29,6 +29,7 @@ import { DishFormModal } from '../../components/DishFormModal';
 import { CategoryFilterPills, DishFilterType } from '../../components/CategoryFilterPills';
 import { DishListItem } from '../../components/DishListItem';
 import { DishListEmpty } from '../../components/DishListEmpty';
+import { SettingsModal } from '../../components/SettingsModal';
 import { triggerTapHaptic } from '../../utils/haptics';
 
 export default function DishesScreen() {
@@ -42,6 +43,7 @@ export default function DishesScreen() {
   const [activeFilter, setActiveFilter] = useState<DishFilterType>('all_filter');
   const [search, setSearch] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const [dishToEdit, setDishToEdit] = useState<Dish | null>(null);
 
   const filteredDishes = useMemo(() => {
@@ -69,15 +71,26 @@ export default function DishesScreen() {
             <Text style={styles.title}>My Dishes</Text>
             <Text style={styles.subtitle}>{allDishes.length} dishes in collection</Text>
           </View>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => {
-              triggerTapHaptic();
-              setDishToEdit(null);
-              setIsModalVisible(true);
-            }}>
-            <Text style={styles.addBtnText}>+ Add Dish</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.settingsBtn}
+              onPress={() => {
+                triggerTapHaptic();
+                setIsSettingsVisible(true);
+              }}
+              accessibilityLabel="Data management and settings">
+              <Text style={styles.settingsIcon}>⚙️</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => {
+                triggerTapHaptic();
+                setDishToEdit(null);
+                setIsModalVisible(true);
+              }}>
+              <Text style={styles.addBtnText}>+ Add Dish</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <TextInput
@@ -145,6 +158,11 @@ export default function DishesScreen() {
         }
         onClose={() => setIsModalVisible(false)}
       />
+
+      <SettingsModal
+        visible={isSettingsVisible}
+        onClose={() => setIsSettingsVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -160,6 +178,22 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 26, fontWeight: '800', color: '#F8FAFC' },
   subtitle: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  settingsBtn: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  settingsIcon: {
+    fontSize: 14,
+  },
   addBtn: {
     backgroundColor: '#10B981',
     paddingHorizontal: 14,

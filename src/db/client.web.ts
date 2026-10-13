@@ -159,11 +159,22 @@ export class WebSQLiteDatabase {
     }
 
     if (sql.includes('DELETE FROM meals')) {
+      if (params.length === 0) {
+        saveMeals([]);
+        return { changes: 1, lastInsertRowId: 0 };
+      }
       const meals = loadMeals();
       const [date, mealType] = params;
       const nextMeals = meals.filter((m) => !(m.date === date && m.meal_type === mealType));
       saveMeals(nextMeals);
       return { changes: 1, lastInsertRowId: 1 };
+    }
+
+    if (sql.includes('DELETE FROM dishes')) {
+      if (params.length === 0) {
+        saveDishes([]);
+        return { changes: 1, lastInsertRowId: 0 };
+      }
     }
 
     return { changes: 0, lastInsertRowId: 0 };
