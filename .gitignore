@@ -100,3 +100,4 @@ Desktop.ini
 *.tmp
 *.temp
 example
+node_modules
