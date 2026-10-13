@@ -1,78 +1,102 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# ==============================================================================
+# DailyPlate - Comprehensive .gitignore
+# Expo (SDK 57) + React Native + Redux Toolkit + SQLite + Vitest
+# ==============================================================================
 
-# Dependencies
+# 1. Package Dependencies
 node_modules/
+.pnp
+.pnp.js
 
-# Expo & Build artifacts
+# 2. Expo, Metro & EAS Build Artifacts
 .expo/
 dist/
 web-build/
+.eas/
 expo-env.d.ts
+.metro-health-check*
 
-# Native & Keys
-.kotlin/
+# 3. Generated Native Platforms & Continuous Native Generation (CNG)
+/ios/
+/android/
+Pods/
+*.apk
+*.aab
+*.ipa
+
+# 4. Native Signing, Certificates & Keystores
 *.orig.*
 *.jks
 *.p8
 *.p12
 *.key
+*.keystore
 *.mobileprovision
+*.pem
 
-# Metro
-.metro-health-check*
-
-# Generated native folders
-/ios
-/android
-
-# SQLite & local databases
+# 5. SQLite & Local Database Artifacts
 *.db
 *.db-shm
 *.db-wal
 *.sqlite
 *.sqlite3
 
-# Environment & secrets
+# 6. Environment Variables & Private Secrets
 .env
 .env.*
 .env*.local
 !.env.example
 
-# Logs & Debugging
+# 7. Testing, Coverage & Diagnostics
+coverage/
+*.lcov
+.nyc_output/
+.vitest/
+
+# 8. Compilers, Linters & Build Caches
+*.tsbuildinfo
+.eslintcache
+.cache/
+.turbo/
+.parcel-cache/
+
+# 9. Logs & Package Manager Debug Outputs
 *.log
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+pnpm-debug.*
 
-# Testing & Coverage
-coverage/
-*.lcov
-.nyc_output/
-
-# TypeScript
-*.tsbuildinfo
-
-# Graphify artifacts
+# 10. Graphify & Local AI Assistant Artifacts
 graphify-out/
 .graphify/
-
-# IDE & Editor configs
-.idea/
+graph.html
+GRAPH_REPORT.md
 .claude/
+.cursor/
+.gemini/
+
+# 11. IDE & Editor Artifacts
+.idea/
+.vscode/*
+!.vscode/extensions.json
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
 
-# macOS & OS artifacts
+# 12. macOS & Windows System Files
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
 Thumbs.db
-*.pem
+ehthumbs.db
+Desktop.ini
 
-# Temporary files
+# 13. Temporary & Scratch Files
 *.tmp
 *.temp
 example
