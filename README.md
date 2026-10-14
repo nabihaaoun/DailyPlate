@@ -1,63 +1,66 @@
 # DailyPlate 🍽️
 
-> **Smart, offline-first mobile meal rotation and planning app built with React Native, Expo (SDK 57), Redux Toolkit, and SQLite.**
+> **A smart, offline-first personal meal rotation and planning application built with React Native, Expo, Redux Toolkit, and local SQLite.**
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
-[![Expo SDK 57](https://img.shields.io/badge/Expo-SDK%2057-black.svg?logo=expo)](https://expo.dev/)
+[![Expo](https://img.shields.io/badge/Expo-SDK%2057-black.svg?logo=expo)](https://expo.dev/)
 [![React Native](https://img.shields.io/badge/React%20Native-0.81-61DAFB.svg?logo=react)](https://reactnative.dev/)
 [![Redux Toolkit](https://img.shields.io/badge/Redux%20Toolkit-RTK-764ABC.svg?logo=redux)](https://redux-toolkit.js.org/)
 [![SQLite](https://img.shields.io/badge/Database-SQLite-003B57.svg?logo=sqlite)](https://docs.expo.dev/versions/latest/sdk/sqlite/)
-[![Vitest](https://img.shields.io/badge/Tests-65%20Passed-green.svg?logo=vitest)](https://vitest.dev/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Private%20%2F%20In%20Active%20Development-orange.svg)]()
+[![Rights](https://img.shields.io/badge/Rights-All%20Rights%20Reserved-red.svg)]()
 
 ---
 
-## 📖 Overview
+## 📖 Product Overview
 
-**DailyPlate** solves decision fatigue in the kitchen by maintaining a **derived meal rotation engine**. Instead of locking you into rigid calendars or forcing cloud subscriptions, DailyPlate helps households balance their favorite home-cooked meals through automated rotation cycles, instant planning, and tactile mobile interactions.
+**DailyPlate** is designed to eliminate everyday decision fatigue in the kitchen. Traditional meal planning apps enforce rigid calendars, require account sign-ups, or charge recurring cloud subscriptions. 
 
-Everything is stored **100% locally** in an on-device SQLite database with zero backend dependencies, zero authentication barriers, and complete data privacy.
+DailyPlate introduces an **Option B derived meal rotation engine**:
+- It tracks how recently each dish was cooked.
+- It dynamically computes which meals are due next for breakfast, lunch, and dinner.
+- It ensures complete household variety without locking you into strict dates.
+- Everything runs **100% offline on-device** with personal data privacy guaranteed.
 
 ---
 
-## ✨ Key Features
+## ✨ Core Highlights & Features
 
-### 🔄 Option B Derived Rotation Engine
-- **Derived State Invariant**: Planning meals in advance has **zero effect** on rotation cycles. Only confirmed cooked meals advance rotation.
-- **Cycle Accumulator**: Tracks when all active dishes in a category have been prepared at least once.
-- **Celebration Micro-Interactions**: Completing a full rotation cycle triggers haptic celebrations and completion banners.
-- **Edge-Case Resilience**: Safely handles single-dish categories, empty categories, and deactivated dishes without stalling the engine.
+### 🔄 Derived Rotation Engine
+- **Option B Invariant**: Scheduling meals in advance as `planned` has **zero impact** on rotation cycles. Only confirmed cooked meals advance rotation.
+- **Cycle Accumulation**: Automatically detects when all active dishes in a category have been completed at least once, resetting the rotation queue smoothly.
+- **Tactile Celebrations**: Completing a rotation cycle triggers joyful visual banners and native haptic feedback.
+- **Edge-Case Safety**: Robust logic for single-dish categories, empty categories, and deactivated items.
 
-### 📅 Planner & 7-Day Calendar Strip
-- **7-Day Strip**: Monday–Sunday week selector with intuitive week switcher (`‹` / `›`) and quick "Today" jump.
-- **Month Picker Modal**: Jump directly to any month and year to view or adjust past and future plans.
-- **Meal Slots**: Breakfast, Lunch, and Dinner cards with visual status badges (`Planned`, `Cooked`, `Skipped`).
-- **1-Tap Reschedule**: Move planned meals to another date or meal slot via `MoveMealModal`.
+### 📅 7-Day Visual Planner
+- **Horizontal Calendar Strip**: Monday–Sunday week selector with quick week switching (`‹` / `›`) and instant "Today" jump.
+- **Month Picker**: Jump to any month or year to review past cooking logs or plan ahead.
+- **Status Badges**: Clear visual states for `Planned`, `Cooked`, and `Skipped` meals.
+- **Rescheduling**: 1-tap `MoveMealModal` allows moving planned meals across dates or meal slots effortlessly.
 
-### ⚡ Smart Auto-Planner & Suggestions
-- **`⚡ Suggest` Button**: Available on every empty slot to instantly assign the least-recently cooked dish from that category's rotation.
-- **`⚡ Fill Day`**: 1-tap auto-fills all remaining empty slots on the selected calendar date.
-- **`📅 7-Day Auto-Plan`**: Generates a 7-day proposed schedule, rotating through your recipe catalog without immediate repeats, and writes all meals in a single SQLite transaction.
+### ⚡ Smart Auto-Planner
+- **Single-Slot `⚡ Suggest`**: Instantly suggests the least-recently prepared dish for any open slot.
+- **`⚡ Fill Day`**: 1-tap fills all remaining meal slots for the selected date using the active rotation queue.
+- **`📅 7-Day Auto-Plan`**: Generates a balanced 7-day proposed schedule, rotating through your recipes without premature repeats.
 
-### 🔍 Real-Time Search & Dish Catalog
-- **Live Search Bar**: Keystroke-by-keystroke filtering with a 1-tap clear button (`✕`) and haptic response.
-- **Category Filter Pills**: Fast navigation across `All`, `Breakfast`, `Lunch`, and `Dinner`.
-- **Rotation Summary Progress**: Visual bar tracking completion progress for each category.
-- **Dish Management**: Add single dishes, batch add multiple dishes, edit names/categories, or soft-delete.
+### 🔍 Real-Time Search & Catalog
+- **Live Search Bar**: Keystroke-by-keystroke filtering with a one-tap clear button (`✕`).
+- **Category Filter Pills**: Fast filtering by `All`, `Breakfast`, `Lunch`, and `Dinner`.
+- **Rotation Progress**: Real-time visual progress bars showing how close each category is to completing a cycle.
+- **Catalog Management**: Add individual dishes, batch add multiple dishes, edit names, or toggle active status.
 
-### 🔒 Privacy & Data Management
-- **100% Offline-First**: Uses native SQLite on mobile devices with transparent `localStorage` fallback for web development.
-- **JSON Backup Export & Import**: Export full database snapshots and restore them seamlessly.
-- **Starter Dishes**: One-tap reload of 8 standard balanced starter dishes.
-- **Danger Zone**: Clear local application data with two-step double confirmation safeguards.
+### 🔒 Privacy & Data Protection
+- **100% Offline-First**: Local SQLite database engine with zero external network tracking.
+- **Local JSON Backup**: Export and import full database snapshots via device clipboard.
+- **Safe Data Management**: Dedicated Danger Zone with two-step double-confirmation safeguards.
 
 ---
 
 ## 🏗️ Architecture
 
-DailyPlate enforces a strict **4-layer architecture** with unidirectional data flow:
+DailyPlate is engineered with a strict **4-layer architecture**:
 
-```
+```text
 ┌────────────────────────────────────────────────────────┐
 │                   Layer 4: UI Presentation             │
 │  (Thin screens <80 LOC, modular components <120 LOC)  │
@@ -81,113 +84,28 @@ DailyPlate enforces a strict **4-layer architecture** with unidirectional data f
 
 ---
 
-## 📁 Project Structure
+## 🛠️ Technology Stack
 
-```text
-DailyPlate/
-├── assets/                     # App icons, splash screens, and images
-├── src/
-│   ├── app/                    # Expo Router screens (thin route handlers)
-│   │   ├── _layout.tsx         # Root layout with Redux Provider & DB init
-│   │   └── (tabs)/             # Main bottom tab navigators
-│   │       ├── index.tsx       # Today screen (Today's plate & quick cook)
-│   │       ├── planner.tsx     # 7-day horizontal calendar & auto-planner
-│   │       └── dishes.tsx      # Dish catalog, search, and settings
-│   ├── components/             # Reusable, modular UI components (<120 LOC)
-│   │   ├── AutoPlanActionsBar.tsx
-│   │   ├── AutoPlanModal.tsx
-│   │   ├── CalendarStrip.tsx
-│   │   ├── CategoryFilterPills.tsx
-│   │   ├── DishPickerModal.tsx
-│   │   ├── MealSlotCard.tsx
-│   │   ├── RotationSummaryBar.tsx
-│   │   ├── SearchBar.tsx
-│   │   ├── SettingsModal.tsx
-│   │   └── ...
-│   ├── db/                     # SQLite client and repository layer
-│   │   ├── client.ts           # Native SQLite database initialization
-│   │   ├── client.web.ts       # Web localStorage fallback client
-│   │   ├── dishesRepository.ts # CRUD for dishes
-│   │   ├── mealsRepository.ts  # CRUD and batch upserts for meals
-│   │   └── dataManagementRepository.ts # Backup export/import & reset
-│   ├── domain/                 # Pure domain logic (zero UI/Redux dependency)
-│   │   ├── autoSuggestEngine.ts# Rotation priority suggestion algorithms
-│   │   └── dishSearch.ts       # Real-time search and filter engine
-│   ├── store/                  # Redux Toolkit state management
-│   │   ├── index.ts            # Root store definition
-│   │   └── slices/             # Feature slices & memoized selectors
-│   │       ├── dishesSlice.ts
-│   │       ├── mealsSlice.ts
-│   │       └── rotationSelectors.ts # Option B rotation cycle selectors
-│   ├── types/                  # Shared TypeScript interfaces & types
-│   └── utils/                  # Date helpers, haptics, and formatting
-├── graphify-out/               # Knowledge graph artifacts (AST code-map)
-├── app.json                    # Expo configuration
-├── package.json                # Dependencies and project scripts
-└── tsconfig.json               # TypeScript configuration
-```
+- **Application Framework**: React Native & Expo (SDK 57)
+- **Primary Language**: TypeScript 5.9 (100% typed codebase)
+- **State Management**: Redux Toolkit (RTK) with memoized reselect selectors
+- **Database Engine**: Local SQLite (`expo-sqlite`) with atomic transactions
+- **Navigation & Routing**: Expo Router (file-based navigation)
+- **Design & Layout**: React Native StyleSheet (Flexbox, custom dark theme)
+- **Haptic Engine**: `expo-haptics`
+- **Testing Framework**: Vitest (65 automated unit tests)
 
 ---
 
-## 🚀 Getting Started
+## 👤 Author & Ownership
 
-### Prerequisites
-- [Node.js](https://nodejs.org/) (version 18 or later)
-- [npm](https://www.npmjs.com/) or [Bun](https://bun.sh/)
-- Optional: [Expo Go](https://expo.dev/go) app installed on your physical mobile device.
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/nabihaaoun/DailyPlate.git
-cd DailyPlate
-```
-
-### 2. Install Dependencies
-```bash
-npm install
-```
-
-### 3. Start the Development Server
-```bash
-npx expo start
-```
-
-### 4. Run the App
-- **Desktop Web Browser**: Open [http://localhost:8081](http://localhost:8081) directly in your browser.
-- **Physical Phone**: Scan the QR code shown in the terminal using the **Expo Go** app (Android) or the default **Camera** app (iOS).
-- **Emulators / Simulators**:
-  - Press `i` to launch in the iOS Simulator.
-  - Press `a` to launch in the Android Emulator.
-
----
-
-## 🧪 Testing & Code Quality
-
-DailyPlate maintains a 100% passing automated test suite covering domain logic, rotation invariants, date navigation, and Redux state transitions.
-
-```bash
-# Run unit tests (65 tests across 8 test suites)
-npm test
-
-# Run TypeScript compiler check
-npx tsc --noEmit
-
-# Run Expo / ESLint check
-npx expo lint
-
-# Run Expo dependency diagnostics
-npx expo-doctor
-```
-
----
-
-## 👥 Author & Contributions
-
-- **Lead Developer**: [Nabiha Aoun](https://github.com/nabihaaoun)
+- **Lead Developer & Creator**: **Nabiha Aoun**
 - **Contact**: [nabihaaoun25@gmail.com](mailto:nabihaaoun25@gmail.com)
 
 ---
 
-## 📄 License
+## 🔒 Copyright & Proprietary Notice
 
-This project is licensed under the [MIT License](LICENSE).
+Copyright © 2026 **Nabiha Aoun**. All rights reserved.
+
+This repository and its codebase are private intellectual property. Unauthorized copying, cloning, distribution, commercial use, modification, or public reproduction of this software or its source files, via any medium, is strictly prohibited without prior written permission from the copyright owner.
